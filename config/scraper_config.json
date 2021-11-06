@@ -1,5 +1,5 @@
 {
     "MAIN_URL": "https://www.boligportal.dk/lejligheder,r%C3%A6kkehuse,huse/k%C3%B8benhavn/3+-v%C3%A6relser/?max_monthly_rent=15000",
     "RESULTS_PAGES": 15,
-    "OUTPUT_PATH": "data\\bp_ads.csv"
+    "OUTPUT_PATH": "data/bp_ads.csv"
 }

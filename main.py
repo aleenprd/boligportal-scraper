@@ -1,3 +1,4 @@
+# %%
 """Scrape BoligPortal website."""
 
 # IMPORTING PACKAGES
@@ -255,6 +256,7 @@ def scrape_ads_urls(main_url: str, pages: int) -> List:
     return all_links
 
 
+# %%
 # MAIN METHOD
 # -------------------------------------- #
 if __name__ == "main":
@@ -262,7 +264,7 @@ if __name__ == "main":
 
     # Unpack the configuration options
     # -------------------------------------- #
-    config_path = "config/config.json"
+    config_path = "config/scraper_config.json"
     config_options = load_configuration_file(config_path)
 
     if config_options is False:
@@ -270,8 +272,11 @@ if __name__ == "main":
             Program will terminate.")
         sys.exit()
     else:
-        print("\nFetching options from configuration file:")
-        print(config_options)
+        print("\nFetching options from configuration file: ")
+        print("# -------------------------------------- #")
+        for option in config_options.keys():
+            print(f"\t* {option}: {config_options[option]}")
+        print()
         main_url = config_options["MAIN_URL"]
         results_pages = config_options["RESULTS_PAGES"]
         output_path = config_options["OUTPUT_PATH"]
