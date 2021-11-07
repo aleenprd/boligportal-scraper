@@ -49,6 +49,13 @@ def isin_list(df: pd.DataFrame, col: str, filter: List) -> pd.DataFrame:
     return df
 
 
+def is_not_in_list(df: pd.DataFrame, col: str, filter: List) -> pd.DataFrame:
+    """Check if series values is not in list and return filtered df."""
+    boolean_series = df[col].isin(filter)
+    df = df[~boolean_series]
+    return df
+
+
 def obj_to_date(creation_date: str) -> datetime.date:
     """Convert object/string to date."""
     return datetime.strptime(creation_date, '%m/%d/%Y').date()
@@ -86,6 +93,7 @@ def filter_data():
         zipcode_filter_type = config_options["ZIPCODE_FILTER_TYPE"]
         zipcode_list_filter = config_options["ZIPCODE_LIST_FILTER"]
         zipcode_range_filter = config_options["ZIPCODE_RANGE_FILTER"]
+        zipcode_exclude_filter = config_options["ZIPCODE_EXCLUDE_FILTER"]
         use_district_filter = config_options["USE_DISTRICT_FILTER"]
         district_filter = config_options["DISTRICT_FILTER"]
 
@@ -112,6 +120,8 @@ def filter_data():
     # Load & pre-process the data
     # -------------------------------------- #
     df = pd.read_csv(input_path)
+
+    print(f"\nInitial selection of: {df.shape[0]} listings.")
 
     df["creation_date"] = df["creation_date"].apply(lambda x: obj_to_date(x))
     df["available_from"] = df["available_from"].apply(lambda x: obj_to_date(x))
@@ -141,6 +151,8 @@ def filter_data():
             df = df[df["zip_code"] <= zipcode_range_filter[1]]
         elif zipcode_filter_type == "list":
             df = isin_list(df, "zip_code", zipcode_list_filter)
+        elif zipcode_filter_type == "exclude":
+            df = is_not_in_list(df, "zip_code", zipcode_exclude_filter)
         else:
             print("\nWrong filter type for ZIP codes. Retry.")
 
@@ -173,6 +185,8 @@ def filter_data():
     df = isin_list(df, "students_only", students_only)
     df = isin_list(df, "has_balcony", has_balcony)
     df = isin_list(df, "has_parking", has_parking)
+
+    print(f"\nSelection reduced to: {df.shape[0]} listings.")
 
     # Save the output to an Excel file
     # -------------------------------------- #

@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 from datetime import date
-from time import time
+from time import sleep, time
 import sys
 from typing import Dict, List
 from tqdm import tqdm
@@ -112,7 +112,8 @@ def scrape_ad(url: str) -> Dict:
     number_of_rooms = check_info(scrape_dict, "Værelser", "0")
     floor = check_info(scrape_dict, "Etage", "0")
     is_furnished = check_info(scrape_dict, "Møbleret", "Nej")
-    is_shareable = check_info(scrape_dict, "Delevenlig", "Nej")
+    is_shareable = check_info(
+        scrape_dict, "Delevenlig", "Nej")
     pets_allowed = check_info(scrape_dict, "Husdyr tilladt", "Nej")
     has_elevator = check_info(scrape_dict, "Elevator", "Nej")
     students_only = check_info(scrape_dict, "Kun for studerende", "Nej")
