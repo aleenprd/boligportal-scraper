@@ -197,7 +197,7 @@ def filter_data():
 # %%
 # MAIN METHOD
 # -------------------------------------- #
-if __name__ == "main":
+if __name__ == "__main__":
     print("Filtering the data...\n")
 
     runtime_start = time()

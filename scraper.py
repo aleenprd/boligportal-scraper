@@ -260,7 +260,7 @@ def scrape_ads_urls(main_url: str, pages: int) -> List:
 # %%
 # MAIN METHOD
 # -------------------------------------- #
-if __name__ == "main":
+if __name__ == "__main__":
     runtime_start = time()
 
     # Unpack the configuration options
