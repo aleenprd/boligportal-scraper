@@ -1,57 +1,24 @@
-# %%
-"""Scrape BoligPortal website."""
+"""Scrape BoligPortal website dependencies."""
 
-# IMPORTING PACKAGES
-# -------------------------------------- #
-import csv
-from urllib.request import urlopen
+
+import urllib
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 from datetime import date
-from time import sleep, time
-import sys
 from typing import Dict, List
 from tqdm import tqdm
-import os
-import json
-sys.path.append("goog_trans")
-from goog_trans.google_trans_new import google_translator as ts
+from time import time
 
-
-# UTILITARIAN FUNCTIONS
-# -------------------------------------- #
-
-
-def read_json_local(path: str):
-    """Read JSON from local path."""
-    with open(path, 'r') as f:
-        file = json.load(f)
-    return file
-
-
-def load_configuration_file(optionsPath: str):
-    """
-    Checks if the file that's searched (specifically options in JSON)
-    and reads the file to memory if found and content is correct.
-    """
-    if os.path.isfile(optionsPath):
-        optionsFile = read_json_local(optionsPath)
-        if len(optionsFile) == 0:
-            print("*\nEmpty options file.")
-            return False
-        else:
-            return optionsFile
-    else:
-        print("*\nMissing or wrongly named options file.")
-        return False
+from dependencies.google_trans_new.google_trans_new import google_translator as ts
 
 
 def make_soup(url: str) -> str:
     """Return an HTML body from an URL."""
-    html = urlopen(url).read()
+    req = urllib.request.Request(url, headers={"User-Agent": "Magic Browser"})
+    http = urllib.request.urlopen(req)
 
-    return BeautifulSoup(html, 'lxml')
+    return BeautifulSoup(http, features="html.parser")
 
 
 def get_only_numbers(seq: str) -> str:
@@ -74,9 +41,9 @@ def check_info(scrape_dict: Dict, key: str, placeholder="0") -> str:
 
 def convert_string_to_binary(seq: str) -> str:
     """Convert a string of Danish Ja or Nej to either 1 or 0."""
-    if seq in ['Ja', 'Yes']:
+    if seq in ["Ja", "Yes"]:
         return 1
-    elif seq in ['Nej', 'No']:
+    elif seq in ["Nej", "No"]:
         return 0
     else:
         return 0
@@ -87,15 +54,21 @@ def scrape_ad(url: str) -> Dict:
     soup = make_soup(url)
     translator = ts()
 
-    key_details_section = soup.find_all(
-        "span", {"class": "css-1ymxg01-Text-Text"})
+    # Fetch the keys of the apartment details e.g. 'Pet Friendly'
+    key_details_section = soup.find_all("span", {"class": "css-1218edi"})
     keys = [x.text for x in key_details_section]
 
-    value_details_section = soup.find_all(
-        "span", {"class": "css-194pvlz-Text-Text"})
+    # Subsequently, fetch the values of the keys e.g. 'Yes'
+    value_details_section = soup.find_all("span", {"class": "css-1e8e3fr"})
     values = [x.text for x in value_details_section]
 
-    keys.remove("Internet")
+    # This might mess up the key-value pairs if present
+    if "Internet" in keys:
+        keys.remove("Internet")
+
+    # When this is present, it actually displays a PNG, not text.
+    # I don't really want to deal with this. But otherwise, the name
+    # of the energy mark is in the picture name e.g. 'D_str2.png'
     if len(keys) != len(values):
         keys.remove("Energimærke")
 
@@ -104,16 +77,14 @@ def scrape_ad(url: str) -> Dict:
         scrape_dict[keys[i]] = values[i]
 
     # Retrieve info
-    full_address = soup.find_all(
-        "div", {"class": "css-76suba-Text-Text"})[1].text
-    summary = soup.find("div", {"class": "css-1f7mpex"}).text
+    full_address = soup.find_all("div", {"class": "css-1bbi9fj"})[1].text
+    summary = soup.find("div", {"class": "css-1oj64sa"}).text
     housing_type = check_info(scrape_dict, "Boligtype", "")
     size = check_info(scrape_dict, "Størrelse", "0")
     number_of_rooms = check_info(scrape_dict, "Værelser", "0")
     floor = check_info(scrape_dict, "Etage", "0")
     is_furnished = check_info(scrape_dict, "Møbleret", "Nej")
-    is_shareable = check_info(
-        scrape_dict, "Delevenlig", "Nej")
+    is_shareable = check_info(scrape_dict, "Delevenlig", "Nej")
     pets_allowed = check_info(scrape_dict, "Husdyr tilladt", "Nej")
     has_elevator = check_info(scrape_dict, "Elevator", "Nej")
     students_only = check_info(scrape_dict, "Kun for studerende", "Nej")
@@ -130,18 +101,33 @@ def scrape_ad(url: str) -> Dict:
 
     # Cleaning
     # ----------------- #
-    # Numbers
+    # Since the numerical values are all strings with added currency figures etc:
+    numerical_values = [
+        number_of_rooms,
+        monthly_rent,
+        aconto,
+        deposit,
+        prepaid_rent,
+        occupancy_price,
+    ]
+
+    for i in range(0, len(numerical_values)):
+        numerical_values[i] = int(remove_commas(get_only_numbers(numerical_values[i])))
+
+    (
+        number_of_rooms,
+        monthly_rent,
+        aconto,
+        deposit,
+        prepaid_rent,
+        occupancy_price,
+    ) = numerical_values
+
     size = float(get_only_numbers(size))
     try:
         floor = int(remove_commas(get_only_numbers(floor)))
     except ValueError:
-        floor = translator.translate(floor, lang_tgt='en').strip()
-    number_of_rooms = int(remove_commas(get_only_numbers(number_of_rooms)))
-    monthly_rent = int(remove_commas(get_only_numbers(monthly_rent)))
-    aconto = int(remove_commas(get_only_numbers(aconto)))
-    deposit = int(remove_commas(get_only_numbers(deposit)))
-    prepaid_rent = int(remove_commas(get_only_numbers(prepaid_rent)))
-    occupancy_price = int(remove_commas(get_only_numbers(occupancy_price)))
+        floor = translator.translate(floor, lang_src="da", lang_tgt="en").strip()
 
     # Binaries
     is_furnished = convert_string_to_binary(is_furnished)
@@ -161,32 +147,33 @@ def scrape_ad(url: str) -> Dict:
     else:
         street = full_address_list[0]
         zip_code = get_only_numbers(full_address_list[1].split("-")[0])
-        district = full_address_list[1].split("-")[0].replace(
-            zip_code, "").strip()
+        district = full_address_list[1].split("-")[0].replace(zip_code, "").strip()
 
-    summary = re.sub(r'\n', '', summary)
-    summary = re.sub(r'\t', '', summary)
+    summary = re.sub(r"\n", "", summary)
+    summary = re.sub(r"\t", "", summary)
 
     # Dates
-    creation_date = datetime.strptime(creation_date, '%d.%m.%Y').date()
+    creation_date = datetime.strptime(creation_date, "%d.%m.%Y").date()
     if available_from == "Snarest muligt":
         available_from = date.today()
     else:
-        available_from = remove_commas(available_from)
-        available_from = translator.translate(
-            available_from, lang_tgt='en').strip()
+        available_from = translator.translate(available_from, lang_src="da", lang_tgt="en").strip()
         available_from = remove_commas(available_from)
         try:
-            available_from = datetime.strptime(
-                available_from, '%d %B %Y').date()
+            available_from = datetime.strptime(available_from, "%d %B %Y").date()
         except ValueError:
-            available_from = datetime.strptime(
-                available_from, '%B %d %Y').date()
+            try:
+                available_from = datetime.strptime(available_from, "%B %d %Y").date()
+            except ValueError:
+                try:
+                    available_from = datetime.strptime(available_from, "%B %d, %Y").date()
+                except ValueError:
+                    available_from = None
 
     # Translations
-    housing_type = translator.translate(housing_type, lang_tgt='en').strip()
-    rental_period = translator.translate(rental_period, lang_tgt='en').strip()
-    summary = translator.translate(summary, lang_tgt='en').strip()
+    housing_type = translator.translate(housing_type, lang_src="da", lang_tgt="en").strip()
+    rental_period = translator.translate(rental_period, lang_src="da", lang_tgt="en").strip()
+    summary = translator.translate(summary, lang_src="da", lang_tgt="en").strip()
 
     # Calculated fields
     total_monthly_cost = monthly_rent + aconto
@@ -222,7 +209,7 @@ def scrape_ad(url: str) -> Dict:
         "has_elevator": has_elevator,
         "students_only": students_only,
         "has_balcony": has_balcony,
-        "has_parking": has_parking
+        "has_parking": has_parking,
     }
 
     return ad
@@ -243,84 +230,15 @@ def scrape_ads_urls(main_url: str, pages: int) -> List:
         else:
             soup = make_soup(main_url)
 
-        for div in soup.find_all("div", {"class": "css-boo8iq-Box-Box"}):
-            a = div.find('a', href=True)
-            all_links.append("https://www.boligportal.dk" + a['href'])
+        for div in soup.find_all("div", {"class": "css-1e7fg19"}):
+            a = div.find("a", href=True)
+            all_links.append("https://www.boligportal.dk" + a["href"])
 
     end_time = time()
-    runtime = end_time-start_time
+    runtime = end_time - start_time
     print(f"Scraping for Ad URLs finished in {round(runtime,2):,}s")
 
     all_links = set(all_links)
     print(f"{len(all_links)} links found.")
 
     return all_links
-
-
-# %%
-# MAIN METHOD
-# -------------------------------------- #
-if __name__ == "__main__":
-    runtime_start = time()
-
-    # Unpack the configuration options
-    # -------------------------------------- #
-    config_path = "config/scraper_config.json"
-    config_options = load_configuration_file(config_path)
-
-    if config_options is False:
-        print("\nMissing, empty or wrongly named config file. \
-            Program will terminate.")
-        sys.exit()
-    else:
-        print("\nFetching options from configuration file: ")
-        print("# -------------------------------------- #")
-        for option in config_options.keys():
-            print(f"\t* {option}: {config_options[option]}")
-        print()
-        main_url = config_options["MAIN_URL"]
-        results_pages = config_options["RESULTS_PAGES"]
-        output_path = config_options["OUTPUT_PATH"]
-
-    # Scrape main page for URL list to parse
-    # -------------------------------------- #
-    urls_list = scrape_ads_urls(main_url, results_pages)
-
-    # Iterate thorugh all the ads
-    # -------------------------------------- #
-    ads_list = []
-
-    i = 1
-    for url in tqdm(urls_list):
-        print(f"No. {i}: {url}")
-        ad = scrape_ad(url)
-        ads_list.append(ad)
-        i += 1
-
-    # Can't save datetime properly. Make strings
-    for ad in ads_list:
-        creation_date = ad["creation_date"]
-        ad["creation_date"] = creation_date.strftime("%m/%d/%Y")
-
-        scraped_date = ad["scraped_date"]
-        ad["scraped_date"] = scraped_date.strftime("%m/%d/%Y")
-
-        available_from = ad["available_from"]
-        ad["available_from"] = available_from.strftime("%m/%d/%Y")
-
-    keys = ads_list[0].keys()
-
-    # Save the output to a CSV file. You can view it in Excel later
-    # -------------------------------------- #
-    with open(
-            output_path,
-            'w',
-            newline='',
-            encoding="utf-8") as output_file:
-        dict_writer = csv.DictWriter(output_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(ads_list)
-
-    # Keeping track of runtime.
-    runtime_end = time()
-    print(f"\nFinished in {round(runtime_end-runtime_start,2):,}s")

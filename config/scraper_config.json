@@ -1,5 +1,5 @@
 {
-    "MAIN_URL": "https://www.boligportal.dk/lejligheder,r%C3%A6kkehuse,huse,v%C3%A6relser/k%C3%B8benhavn/3-5-v%C3%A6relser/?max_monthly_rent=15000&min_size_m2=64",
-    "RESULTS_PAGES": 15,
-    "OUTPUT_PATH": "data/bp_ads.csv"
+    "MAIN_URL": "https://www.boligportal.dk/lejeboliger/k%C3%B8benhavn/",
+    "RESULTS_PAGES": 1,
+    "OUTPUT_PATH": "../data/bp_ads_2023.csv"
 }
