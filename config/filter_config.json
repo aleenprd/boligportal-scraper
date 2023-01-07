@@ -1,5 +1,5 @@
 {
-    "INPUT_PATH": "../data/bp_ads_2023.csv",
+    "INPUT_PATH": "../data/bp_ads.csv",
     "MAX_DAYS_SINCE_CREATION": 30,
     "USE_ZIPCODE_FILTER": "yes",
     "ZIPCODE_FILTER_TYPE": "range",
@@ -26,5 +26,5 @@
     "STUDENTS_ONLY": [0],
     "HAS_BALCONY": [0,1],
     "HAS_PARKING": [0,1],
-    "OUTPUT_PATH": "../data/filter_output_2023.xlsx"
+    "OUTPUT_PATH": "../data/filter_output.xlsx"
 }

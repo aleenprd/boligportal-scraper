@@ -4,6 +4,7 @@
 import argparse
 import csv
 import sys
+from datetime import datetime
 
 from dependencies.general import *
 from dependencies.scraper import *
@@ -17,7 +18,7 @@ parser.add_argument(
     type=str,
     required=True,
     help="Tells application if it should scrape or filter",
-    default="scrape",
+    default="full",
 )
 
 parser.add_argument(
@@ -40,10 +41,11 @@ parser.add_argument(
 @timing
 def main(args) -> None:
     """Main method to either scrape or filter scraped data."""
-
-    if args.mode == "scrape":
+    timestr = datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")
+    
+    if args.mode == "scrape" or args.mode == "full":
         scraper_config_options = load_configuration_file(args.scraper_config)
-        
+
         if scraper_config_options is False:
             print(
                 "\nMissing, empty or wrongly named scraping config file. \
@@ -59,7 +61,7 @@ def main(args) -> None:
             main_url = scraper_config_options["MAIN_URL"]
             results_pages = scraper_config_options["RESULTS_PAGES"]
             scraper_output_path = scraper_config_options["OUTPUT_PATH"]
-            
+
             # Scrape main page for URL list to parse
             # -------------------------------------- #
             urls_list = scrape_ads_urls(main_url, results_pages)
@@ -90,36 +92,61 @@ def main(args) -> None:
 
             # Save the output to a CSV file. You can view it in Excel later
             # -------------------------------------- #
-            with open(scraper_output_path, "w", newline="", encoding="utf-8") as output_file:
+            scraper_output_path = (
+                (".").join(scraper_output_path.split(".")[:-1])
+                + "_"
+                + timestr
+                + "."
+                + scraper_output_path.split(".")[-1]
+            )
+
+            with open(
+                scraper_output_path, "w", newline="", encoding="utf-8"
+            ) as output_file:
                 dict_writer = csv.DictWriter(output_file, keys)
                 dict_writer.writeheader()
                 dict_writer.writerows(ads_list)
-    
-    elif args.mode == "filter":
+
+    if args.mode == "filter" or args.mode == "full":
         filter_config_options = load_configuration_file(args.filter_config)
-        
+
         if filter_config_options is False:
-            print("\nMissing, empty or wrongly named filter config file. \
-                Program will terminate.")
+            print(
+                "\nMissing, empty or wrongly named filter config file. \
+                Program will terminate."
+            )
         else:
             print("\nFetching filter options from configuration file: ")
             print("# -------------------------------------- #")
             for option in filter_config_options.keys():
                 print(f"\t* {option}: {filter_config_options[option]}")
             print()
-        
+
             # FILTER and save to XLSX file
             # -------------------------------------- #
-            filtered_data = filter_data(filter_config_options)    
+            filter_input_path = filter_config_options["INPUT_PATH"]
+            if args.mode == "full":
+                filter_input_path = scraper_output_path
             filter_output_path = filter_config_options["OUTPUT_PATH"]
+            
+            filter_output_path = (
+                (".").join(filter_output_path.split(".")[:-1])
+                + "_"
+                + timestr
+                + "."
+                + filter_output_path.split(".")[-1]
+            )
+
+            df = pd.read_csv(filter_input_path)
+            filtered_data = filter_data(df, filter_config_options)
 
             # Save the output to an Excel file
             # -------------------------------------- #
             with pd.ExcelWriter(filter_output_path) as writer:
-                filtered_data.to_excel(writer, sheet_name='Filtered Data')
+                filtered_data.to_excel(writer, sheet_name="Filtered Data")
 
-    else:
-        print(f"Mode needs to be either 'scrape' or 'filter'. Detected '{args.mode}'.")
+    if args.mode not in ["scrape", "filter", "full"]:
+        print(f"Mode needs to be either 'scrape', 'filter' or 'full'. Detected '{args.mode}'.")
         sys.exit()
 
 

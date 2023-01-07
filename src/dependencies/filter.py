@@ -25,11 +25,8 @@ def obj_to_date(creation_date: str) -> datetime.date:
     return datetime.strptime(creation_date, '%m/%d/%Y').date()
 
 
-def filter_data(config_options: Dict[str, Union[str, int]]) -> pd.DataFrame:
+def filter_data(df: pd.DataFrame, config_options: Dict[str, Union[str, int]]) -> pd.DataFrame:
     """Apply user defined filters to dataframe."""
-    # I/O
-    input_path = config_options["INPUT_PATH"]
-
     # Listing time details
     max_days_since_creation = config_options["MAX_DAYS_SINCE_CREATION"]
     rental_period_filter = config_options["RENTAL_PERIOD_FILTER"]
@@ -66,8 +63,6 @@ def filter_data(config_options: Dict[str, Union[str, int]]) -> pd.DataFrame:
 
     # Load & pre-process the data
     # -------------------------------------- #
-    df = pd.read_csv(input_path)
-
     print(f"\nInitial selection of: {df.shape[0]} listings.")
 
     df["creation_date"] = df["creation_date"].apply(lambda x: obj_to_date(x))
