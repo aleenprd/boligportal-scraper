@@ -21,4 +21,4 @@ The following should help the user know how to pick their housing in Copenhagen,
 The code makes use of google_trans_new, which was cloned from their Github, into the folder `goog_trans` because it still has some errors. The code needed to be modified as [per this answer](https://stackoverflow.com/questions/68214591/python-google-trans-new-translate-raises-error-jsondecodeerror-extra-data) on StackOverflow i.e. change line 151 in `google_trans_new.py`. Additionally, the scraper makes use of BeautifulSoup.
 
 ## Notes from developer
-The project is public and free to use. Please feel free to contribute to maintaining and expanding this project. If you would like to do so, give me a heads up by sending me a message or an e-mail. At the same time, if you decide to use this code, please offer a citation back to me.s
+The project is public and free to use. Please feel free to contribute to maintaining and expanding this project. If you would like to do so, give me a heads up by sending me a message or an e-mail. At the same time, if you decide to use this code, please offer a citation back to me. :)
